@@ -1,0 +1,49 @@
+---
+title: "Untitled"
+format: html
+editor: visual
+---
+
+```{r}
+library(tidyverse)
+install.packages("tidytuesdayR")
+tuesdata <- tidytuesdayR::tt_load('2024-05-21')
+emissions <- tuesdata$emissions
+```
+
+```{r}
+glimpse(emissions)
+```
+
+```{r}
+emissions %>% 
+  group_by(commodity) %>% 
+  summarise(mean = mean(total_emissions_MtCO2e)) %>% 
+  ggplot(aes(commodity, mean))+
+  geom_point()+
+  theme(axis.text.x = element_text(angle = 30, hjust = 0.5, vjust = 0.5))
+```
+
+```{r}
+emissions %>% 
+  ggplot(aes(production_value, total_emissions_MtCO2e))+
+  geom_point(aes(color = commodity))
+```
+
+```{r}
+emissions %>% 
+  filter(commodity == "Bituminous Coal") %>% 
+  filter(production_value > 100) %>% 
+  ggplot(aes(year, total_emissions_MtCO2e))+
+  geom_line(aes(color = parent_entity))
+```
+
+```{r}
+emissions %>% 
+  filter(parent_type == "Investor-owned Company") %>% 
+  filter(total_emissions_MtCO2e > 100) %>% 
+  filter(year < 1980) %>% 
+  ggplot(aes(year, total_emissions_MtCO2e)) +
+  geom_point(aes(color = parent_entity))
+```
+
