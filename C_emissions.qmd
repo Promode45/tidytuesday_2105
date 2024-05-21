@@ -6,6 +6,9 @@ editor: visual
 
 ```{r}
 library(tidyverse)
+library(scales)
+#install.packages("ggtext")
+library(ggtext)
 install.packages("tidytuesdayR")
 tuesdata <- tidytuesdayR::tt_load('2024-05-21')
 emissions <- tuesdata$emissions
@@ -45,5 +48,90 @@ emissions %>%
   filter(year < 1980) %>% 
   ggplot(aes(year, total_emissions_MtCO2e)) +
   geom_point(aes(color = parent_entity))
+```
+
+```{r}
+emissions %>% 
+  filter(total_emissions_MtCO2e > 100) %>% 
+  filter(!parent_entity == "China (Coal)") %>% 
+  ggplot(aes(year, total_emissions_MtCO2e))+
+  geom_point(aes(color = parent_type))
+```
+
+```{r}
+emissions %>% 
+  filter(parent_entity == "China (Coal)", commodity == "Bituminous Coal") %>% 
+  ggplot(aes(year, total_emissions_MtCO2e))+
+  geom_area()
+```
+
+```{r}
+top_parent_entities <- emissions %>% 
+  summarise(total_emissions = sum(total_emissions_MtCO2e, na.rm = T),
+            .by = parent_entity) %>% 
+  arrange(desc(total_emissions)) %>% 
+  top_n(10,total_emissions) %>% 
+  mutate(
+    highlight = ifelse(total_emissions > 200000, "yes", "no"),
+    bar_label = number(total_emissions, big.mark = ",", accuracy = 1)
+  )
+  
+```
+
+```{r}
+top_parent_entities %>% 
+  ggplot(aes(x = reorder(parent_entity, total_emissions), y = total_emissions, fill = highlight))+
+  geom_col()+
+  coord_flip()
+```
+
+```{r}
+p1 <- top_parent_entities |>
+  ggplot(aes(x = reorder(parent_entity, total_emissions), y = total_emissions, fill = highlight)) +
+    
+  # Geoms
+  geom_col() +
+  geom_textbox(
+    aes(label = paste0(
+        "<span style='font-size:9pt'><br>",
+         bar_label, "</span>"
+        ),
+      hjust = case_when(
+        total_emissions < 200000 ~ 0,
+        TRUE ~ 1
+      ),
+      halign = case_when(
+        total_emissions < 200000 ~ 0,
+        TRUE ~ 1
+      ),
+      text.colour = case_when(
+        total_emissions > 200000 ~ "#fdfdff",
+        TRUE ~ "gray20" 
+      )
+    ),
+    fill = NA,
+    box.colour = NA,
+    size = 3.5,
+    fontface = "bold"
+  ) +
+    
+  # Scales
+  scale_x_discrete(expand = expansion(add = c(.8, .6))) +
+  scale_y_continuous(
+    breaks = seq(0, 300000, by = 75000),
+    limits = c(0, 280000),
+    expand = c(0, 0),
+    labels = number_format()
+  ) +
+  coord_flip(clip = "off") +
+    
+  # Labs
+  labs(
+    title = "Top 10 Parent Entities by Total Emissions",
+    x = "Parent Entity",
+    y = "Total Emissions (MtCO2e)",
+  )
+
+
 ```
 
